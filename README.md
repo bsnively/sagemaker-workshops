@@ -8,7 +8,7 @@ Using the sklearn estimator in SageMaker:
 [Scikit Learn Batch Inferencing](ScikitLearn/03-scikit-learn-batch-inference.md)
   
 ### Tensorflow
-[Tensorflow Training and HPO](TensorFlow/00_tensorflow-training-hpo.md)
+[Tensorflow Training and HPO](TensorFlow/00_tensorflow-training-hpo.md)  
 [Tensorflow Multiple Model Deployment](TensorFlow/01_tensorflow-multi-model-deployment.md)
 
 ### Athena Integration
