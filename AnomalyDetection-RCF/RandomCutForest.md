@@ -8,14 +8,7 @@ Step 1
 
 Setting Up S3
 
-This second lab demonstrates how you can use the Random Cut Forest Amazon provided algorithm.
-
-First download the following starting notebook:  
-[random\_cut\_forest.ipynb](random_cut_forest.ipynb)
-
-After downloading, open up the Jupyter Notebook that we created in Lab1 of the workshop.
-
-Select ‘Upload’ and upload the downloaded notebook file. Then open the file to edit and run it.
+This lab demonstrates how you can use the Random Cut Forest Amazon provided algorithm.
 
 **IMPORTANT:**  
 Replace the S3Bucket location with a bucket you created in the Lab1 of the workshop  
