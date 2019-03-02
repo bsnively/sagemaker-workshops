@@ -1,8 +1,5 @@
-  Amazon SageMaker Workshop                              if ( $.cookie('styleCookie') === 'style-light.css') { $('html, body').css('background', '#eeeeee'); } else if ($.cookie('styleCookie') === 'style.css') { $('html, body').css('background', '#222222'); }                     
+  Amazon SageMaker Workshop 
 
-![](images/aws_logo.png)
-
-  Lab 2:  
 Anomaly Detection with Random Cut Forest
 ===================================================
 
