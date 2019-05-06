@@ -1,0 +1,240 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'AWS Machine Learning SageMaker and EMR Workshop'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Required EMR Parameters
+        Parameters:
+          - EMRInstanceType
+      - Label:
+          default: Required SageMaker Parameters
+        Parameters:
+          - SageMakerInstanceType
+          - VpcCIDR
+          - PublicSubnet1CIDR
+      - Label:
+          default: Optional Parameters
+        Parameters:
+          - SageMakerS3Bucket
+    ParameterLabels:
+      SageMakerS3Bucket:
+        default: S3 Bucket for SageMaker access
+Parameters:
+  SageMakerInstanceType:
+    Description: 'The type of SageMaker notebook to be provisioned. '
+    Type: String
+    Default: ml.t3.xlarge
+    AllowedValues:
+      - ml.t2.medium
+      - ml.t3.medium
+      - ml.t3.large
+      - ml.t3.xlarge
+      - ml.t3.2xlarge
+      - ml.m5.xlarge
+      - ml.m5.2xlarge
+      - ml.m5.4xlarge
+  EMRInstanceType:
+    Description: 'The type of EMR nodes to be provisioned. '
+    Type: String
+    Default: m5.xlarge
+    AllowedValues:
+      - m4.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.12xlarge
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.12xlarge
+  SageMakerS3Bucket:
+    Description: <Optional> Name of a pre-existing bucket that SageMaker will be granted full access
+    Type: String
+    Default: ''
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.192.0.0/16
+  PublicSubnet1CIDR:
+    Description: >-
+      Please enter the IP range (CIDR notation) for the public subnet in the
+      first Availability Zone
+    Type: String
+    Default: 10.192.10.0/24
+Conditions:
+  S3BucketEmpty:
+    Fn::Equals:
+    - ''
+    - Ref: SageMakerS3Bucket
+  S3BucketNotEmpty:
+    Fn::Not:
+    - Condition: S3BucketEmpty
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-vpc
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-vpc
+  InternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: !Ref PublicSubnet1CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Public Subnet (AZ1)'
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Public Routes'
+  DefaultPublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  NotebookInstance:
+    Type: 'AWS::SageMaker::NotebookInstance'
+    Properties:
+      InstanceType: !Ref SageMakerInstanceType
+      NotebookInstanceName: !Sub ${AWS::StackName}-NotebookInstance
+      RoleArn: !GetAtt NotebookExecutionRole.Arn
+      DirectInternetAccess: Enabled
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds:
+        - !Ref SageMakerSecurityGroup
+      LifecycleConfigName: !GetAtt NotebookLifecycleConfig.NotebookInstanceLifecycleConfigName
+
+  SageMakerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SageMaker Notebook instance / Training contianer security group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: -1
+        CidrIp: !Ref VpcCIDR
+        
+  NotebookExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-AmazonSageMaker-ExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - sagemaker.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonElasticMapReduceReadOnlyAccess"
+      Path: "/service-role/"
+      Policies:
+        Fn::If:
+        - S3BucketNotEmpty
+        -
+          - PolicyName: SageMakerS3BucketAccess
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - s3:*
+                  Resource:
+                    - !Sub 'arn:aws:s3:::${SageMakerS3Bucket}'
+                    - !Sub 'arn:aws:s3:::${SageMakerS3Bucket}/*'
+        - Ref: AWS::NoValue
+  NotebookLifecycleConfig:
+    Type: 'AWS::SageMaker::NotebookInstanceLifecycleConfig'
+    Properties:
+      NotebookInstanceLifecycleConfigName: !Sub ${AWS::StackName}-NotebookInstanceLifecycleConfig
+      OnCreate: # Specify Git repository to clone contents
+        - Content: !Base64 
+            Fn::Sub:
+            - |
+                set -e
+                cd /home/ec2-user/.sparkmagic
+                wget https://raw.githubusercontent.com/jupyter-incubator/sparkmagic/master/sparkmagic/example_config.json
+                sed s/localhost/`aws emr list-instances --cluster-id ${EMR_CLUSTER_ID} --instance-group-types MASTER --query Instances[0].PrivateIpAddress --output text`/g example_config.json > config.json
+            - {
+              EMR_CLUSTER_ID: !Ref EMRCluster
+            }
+  EMRCluster:
+    Type: AWS::EMR::Cluster
+    Properties: 
+      Name: !Sub ${AWS::StackName}-spark-cluster
+      ReleaseLabel: 'emr-5.23.0'
+      Applications:
+        - Name: 'Hadoop'
+        - Name: 'Hive'
+        - Name: 'Spark'
+        - Name: 'Livy'
+      Configurations:
+      - Classification: livy-conf
+        ConfigurationProperties:
+          livy.server.session.timeout: '24h'
+      - Classification: spark
+        ConfigurationProperties:
+          maximizeResourceAllocation: true
+#      - Classification: spark-hive-site
+#        ConfigurationProperties:
+#          hive.metastore.client.factory.class: 'com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory'
+      Instances:
+        MasterInstanceGroup: 
+          InstanceCount: 1
+          InstanceType: !Ref EMRInstanceType
+          Market: "ON_DEMAND"
+          Name: "Master"
+        CoreInstanceGroup: 
+          InstanceCount: 1
+          InstanceType: !Ref EMRInstanceType
+          Market: "ON_DEMAND"
+          Name: "Core"
+        Ec2SubnetId: !Ref PublicSubnet1
+        AdditionalMasterSecurityGroups:
+          - !Ref SageMakerSecurityGroup
+        TerminationProtected: false
+      JobFlowRole: "EMR_EC2_DefaultRole"
+      ServiceRole: "EMR_DefaultRole"
+      VisibleToAllUsers: true
+
+Outputs:
+  VPC:
+    Description: A reference to the created VPC
+    Value: !Ref VPC
+  PublicSubnet1:
+    Description: A reference to the public subnet in the 1st Availability Zone
+    Value: !Ref PublicSubnet1
+  SageMakerSecurityGroup:
+    Description: Security group for SageMaker Notebook instance / Training contianer
+    Value: !Ref SageMakerSecurityGroup
