@@ -12,7 +12,7 @@ This contains a AWS CloudFormation Template that creates the following artifacts
 
 The following Diagram shows what gets created:
 
-![alt text](overview_diagram.png "Logo Title Text 1")
+![overview](overview_diagram.png "Overview Diagram")
 
 The following is what is used to create the config on the notebook through the lifecycle configuration:
 
@@ -22,3 +22,6 @@ cd /home/ec2-user/.sparkmagic
 wget https://raw.githubusercontent.com/jupyter-incubator/sparkmagic/master/sparkmagic/example_config.json
 sed s/localhost/`aws emr list-instances --cluster-id ${EMR_CLUSTER_ID} --instance-group-types MASTER --query Instances[0].PrivateIpAddress --output text`/g example_config.json > config.json
 ```
+
+To launch the template, you provide the following parameters:
+![params](CloudFormation_Params.png "parameters")
