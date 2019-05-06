@@ -14,6 +14,10 @@ The following Diagram shows what gets created:
 
 ![overview](overview_diagram.png "Overview Diagram")
 
+After running, you can use the Spark Kernels to interact w/ the EMR cluster:
+
+![notebook](NotebookExample.png "Notebook Diagram")
+
 The following is what is used to create the config on the notebook through the lifecycle configuration:
 
 ```sh
