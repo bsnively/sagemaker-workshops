@@ -31,8 +31,8 @@ If it hasn't been run before, you will see the IAM roles have been created:
                         "Sid": "",
                         "Effect": "Allow",
                         "Principal": {
-                          ...
 ```
+(rest of result omitted)
 
 ### Overview:
 
