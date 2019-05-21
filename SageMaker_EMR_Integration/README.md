@@ -21,8 +21,8 @@ If it hasn't been run before, you will see the IAM roles have been created:
         "Role": {
             "Path": "/",
             "RoleName": "EMR_EC2_DefaultRole",
-            "RoleId": "AROAY52EVU32A756KU7VJ",
-            "Arn": "arn:aws:iam::613787477748:role/EMR_EC2_DefaultRole",
+            "RoleId": "ASDJALDSJFASDFASDF",
+            "Arn": "arn:aws:iam::1111111111:role/EMR_EC2_DefaultRole",
             "CreateDate": "2019-05-21T17:42:52Z",
             "AssumeRolePolicyDocument": {
                 "Version": "2008-10-17",
